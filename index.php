@@ -1,5 +1,5 @@
-<?php
-// index.php - Dashboard Principal OMEGA Suite GRH & RESTAU
+<?php 
+// index.php - Dashboard Principal OMEGA Suite GRH, RESTAU & QR Codes Avancés
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -23,13 +23,15 @@ $nb_commandes = 0;
 $ca_restau = 0;
 $pointages_jour = 0;
 $avis_grh = [];
+$moyenne_satisfaction = 0;
+$total_satisfaction = 0;
 
 if ($db) {
     try {
         $nb_employes = $db->query("SELECT COUNT(*) as nb FROM employes")->fetch(PDO::FETCH_ASSOC)['nb'] ?? 0;
         $nb_commandes = $db->query("SELECT COUNT(*) as nb FROM restau_commandes")->fetch(PDO::FETCH_ASSOC)['nb'] ?? 0;
         $ca_restau = $db->query("SELECT SUM(total) as total FROM restau_commandes")->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-        
+
         // Vérification table pointage si elle existe
         $check_pt = $db->query("SHOW TABLES LIKE 'pointages'");
         if ($check_pt->rowCount() > 0) {
@@ -41,6 +43,14 @@ if ($db) {
         if ($check_avis->rowCount() > 0) {
             $avis_grh = $db->query("SELECT * FROM avis_grh ORDER BY id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
         }
+
+        // Vérification table avis_clients (Satisfaction BMW & Subway style)
+        $check_sat = $db->query("SHOW TABLES LIKE 'avis_clients'");
+        if ($check_sat->rowCount() > 0) {
+            $sat_res = $db->query("SELECT AVG(note) as avg_note, COUNT(*) as total FROM avis_clients")->fetch(PDO::FETCH_ASSOC);
+            $moyenne_satisfaction = round($sat_res['avg_note'] ?? 0, 1);
+            $total_satisfaction = $sat_res['total'] ?? 0;
+        }
     } catch (Exception $e) {}
 }
 ?>
@@ -48,7 +58,7 @@ if ($db) {
 <div class="container my-4 text-white">
     <div class="text-center mb-5">
         <h1 class="fw-bold text-danger"><i class="fas fa-network-wired me-2"></i> OMEGA SUITE — Dashboard Intégré</h1>
-        <p class="text-muted">Système de Gestion des Ressources Humaines, Pointage Intelligent & Restauration POS</p>
+        <p class="text-muted">Système de Gestion des Ressources Humaines, Pointage Intelligent, Restauration POS & Traçabilité IoT</p>
     </div>
 
     <!-- Indicateurs Clés (KPI) -->
@@ -76,15 +86,15 @@ if ($db) {
         </div>
         <div class="col-md-3 mb-3">
             <div class="card bg-dark border-warning shadow p-3 text-center h-100">
-                <span class="text-muted small"><i class="fas fa-bullhorn me-1"></i> Avis & Notes GRH</span>
-                <h3 class="text-warning fw-bold mt-2"><?= count($avis_grh) ?></h3>
-                <a href="avis_grh.php" class="btn btn-sm btn-outline-warning mt-2">Consulter Notes</a>
+                <span class="text-muted small"><i class="fas fa-star me-1"></i> Satisfaction Clients (<?= $total_satisfaction ?>)</span>
+                <h3 class="text-warning fw-bold mt-2"><?= $moyenne_satisfaction ?> / 5</h3>
+                <a href="satisfaction.php" class="btn btn-sm btn-outline-warning mt-2">Voir les Avis</a>
             </div>
         </div>
     </div>
 
-    <!-- Accès Rapides aux Modules -->
-    <div class="row">
+    <!-- Accès Rapides aux Modules de Base -->
+    <div class="row mb-4">
         <div class="col-lg-4 mb-4">
             <div class="card bg-dark border-secondary shadow-lg h-100">
                 <div class="card-header bg-danger text-white fw-bold">
@@ -127,6 +137,69 @@ if ($db) {
                         <a href="avis_grh.php" class="btn btn-warning btn-sm text-dark fw-bold"><i class="fas fa-bullhorn me-1"></i> Avis & Communications GRH</a>
                         <a href="liste_employes.php" class="btn btn-outline-light btn-sm"><i class="fas fa-file-invoice-dollar me-1"></i> Bulletins de Paie & Déductions</a>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION MODULES QR CODES AVANCÉS (Salon, Matériel, Satisfaction, Wi-Fi IoT) -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="text-white mb-3"><i class="fas fa-cubes text-danger me-2"></i> Modules Avancés OMEGA & QR Codes</h4>
+        </div>
+        
+        <!-- Module Salon & vCard -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark border-secondary shadow h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="h3 text-info mb-2"><i class="fas fa-id-badge"></i></div>
+                        <h5 class="card-title text-white">Salon & vCard Numérique</h5>
+                        <p class="card-text text-muted small">Partagez instantanément vos coordonnées professionnelles et portfolio lors d'une visite client.</p>
+                    </div>
+                    <a href="salon_vcard.php" class="btn btn-sm btn-outline-info mt-3"><i class="fas fa-arrow-right me-1"></i> Ouvrir vCard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Traçabilité Matériel -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark border-secondary shadow h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="h3 text-danger mb-2"><i class="fas fa-tools"></i></div>
+                        <h5 class="card-title text-white">Traçabilité Matériel</h5>
+                        <p class="card-text text-muted small">Suivi des équipements d'entreprise, historique d'entretien et génération de tickets de pannes.</p>
+                    </div>
+                    <a href="equipements.php" class="btn btn-sm btn-outline-danger mt-3"><i class="fas fa-arrow-right me-1"></i> Gérer le Parc</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Enquêtes de Satisfaction -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark border-secondary shadow h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="h3 text-warning mb-2"><i class="fas fa-star"></i></div>
+                        <h5 class="card-title text-white">Satisfaction Client</h5>
+                        <p class="card-text text-muted small">Feedback post-prestation et notes de 1 à 5 étoiles inspirées des standards BMW et Subway.</p>
+                    </div>
+                    <a href="satisfaction.php" class="btn btn-sm btn-outline-warning mt-3"><i class="fas fa-arrow-right me-1"></i> Voir les Retours</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Wi-Fi Invité & IoT -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark border-secondary shadow h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="h3 text-success mb-2"><i class="fas fa-wifi"></i></div>
+                        <h5 class="card-title text-white">Wi-Fi Invité & IoT</h5>
+                        <p class="card-text text-muted small">Génération de QR codes de connexion automatique sécurisée pour les visiteurs et salles de réunion.</p>
+                    </div>
+                    <a href="wifi_visiteurs.php" class="btn btn-sm btn-outline-success mt-3"><i class="fas fa-arrow-right me-1"></i> Accès Réseau</a>
                 </div>
             </div>
         </div>
