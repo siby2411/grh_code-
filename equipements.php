@@ -181,7 +181,7 @@ if (isset($_GET['edit']) && $db) {
                             <th>Acquisition</th>
                             <th>État</th>
                             <th>Réparateur</th>
-                            <th class="text-center">QR Code & Fiche</th>
+                            <th class="text-center">Fiche & Étiquette QR</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -193,9 +193,6 @@ if (isset($_GET['edit']) && $db) {
                             if($eq['etat_usure'] === 'À réparer') $badge_color = 'danger';
                             elseif($eq['etat_usure'] === 'Moyen') $badge_color = 'warning text-dark';
                             elseif($eq['etat_usure'] === 'Neuf') $badge_color = 'info text-dark';
-
-                            $fiche_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/equipement_fiche.php?id=' . $eq['id'];
-                            $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($fiche_url);
                         ?>
                             <tr>
                                 <td><span class="badge bg-secondary"><?= htmlspecialchars($eq['code_equipement']) ?></span></td>
@@ -207,28 +204,12 @@ if (isset($_GET['edit']) && $db) {
                                 <td><span class="badge bg-<?= $badge_color ?>"><?= htmlspecialchars($eq['etat_usure']) ?></span></td>
                                 <td><?= htmlspecialchars($eq['reparateur_assigne'] ?? 'Non assigné') ?></td>
                                 <td class="text-center">
-                                    <a href="equipement_fiche.php?id=<?= $eq['id'] ?>" target="_blank" class="btn btn-sm btn-outline-info" title="Voir la fiche mobile">
-                                        <i class="fas fa-external-link-alt"></i>
+                                    <a href="equipement_fiche.php?id=<?= $eq['id'] ?>" target="_blank" class="btn btn-sm btn-outline-info mb-1" title="Voir la fiche mobile">
+                                        <i class="fas fa-external-link-alt me-1"></i> Fiche
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#qrModal<?= $eq['id'] ?>" title="Afficher QR Code">
-                                        <i class="fas fa-qrcode"></i>
-                                    </button>
-
-                                    <!-- Modal QR Code -->
-                                    <div class="modal fade text-dark" id="qrModal<?= $eq['id'] ?>" tabindex="-1">
-                                        <div class="modal-dialog modal-dialog-centered modal-sm">
-                                            <div class="modal-content bg-dark text-white border-secondary">
-                                                <div class="modal-header border-secondary">
-                                                    <h5 class="modal-title fs-6"><?= htmlspecialchars($eq['nom_equipement']) ?></h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body text-center bg-white p-3">
-                                                    <img src="<?= $qr_url ?>" alt="QR Code" class="img-fluid">
-                                                    <p class="text-dark small mt-2 mb-0 fw-bold"><?= htmlspecialchars($eq['code_equipement']) ?></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <a href="equipement_etiquette.php?id=<?= $eq['id'] ?>" target="_blank" class="btn btn-sm btn-outline-warning mb-1" title="Imprimer l'étiquette QR Code">
+                                        <i class="fas fa-print me-1"></i> Étiquette QR
+                                    </a>
                                 </td>
                                 <td class="text-end">
                                     <a href="equipements.php?edit=<?= $eq['id'] ?>" class="btn btn-sm btn-primary" title="Modifier l'état ou les infos">
