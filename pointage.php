@@ -1,12 +1,11 @@
 <?php
-require_once 'config/database.php';
-include 'header.php';
-
+require_once 'config/database.php';                         
+include 'header.php';         
 $db = (new Database())->getConnection();
 $message = '';
 $alert_type = 'success';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                              
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {                    
     $code_employe = trim($_POST['code_employe']);
     $type_pointage = $_POST['type_pointage']; // ENTREE ou SORTIE
     $date_pointage = date('Y-m-d');

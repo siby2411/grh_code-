@@ -50,7 +50,6 @@ if ($db && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_comman
 
         if ($total_panier <= 0) throw new Exception("Veuillez sélectionner au moins un produit.");
 
-        // Enregistrement de la commande avec l'état EN_ATTENTE
         $stmt = $db->prepare("INSERT INTO restau_commandes (employe_id, table_num, total, mode_paiement, date_commande, etat) VALUES (?, ?, ?, ?, NOW(), 'EN_ATTENTE')");
         $stmt->execute([$employe_id, $table_num, $total_panier, $mode_paiement]);
         $commande_id = $db->lastInsertId();
@@ -58,7 +57,7 @@ if ($db && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_comman
         foreach ($items_to_insert as $item) {
             $db->prepare("INSERT INTO restau_commande_items (commande_id, produit_id, quantite, prix_unitaire) VALUES (?, ?, ?, ?)")
                ->execute([$commande_id, $item['id'], $item['qte'], $item['prix']]);
-            
+
             $db->prepare("UPDATE restau_produits SET stock = stock - ? WHERE id = ?")
                ->execute([$item['qte'], $item['id']]);
         }
@@ -75,7 +74,6 @@ if ($db && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_comman
 
 $produits = [];
 $employes = [];
-$ventes_jour = 0;
 
 if ($db) {
     try {
@@ -182,10 +180,12 @@ if ($db) {
                     <?php
                     $emp_qr = isset($_GET['employe_id']) ? intval($_GET['employe_id']) : 1;
                     $table_qr = isset($_GET['table']) ? htmlspecialchars($_GET['table']) : 'Table_VIP';
-                    $url_table = urlencode("http://127.0.0.1:8000/restau_pos.php?employe_id=" . $emp_qr . "&table=" . $table_qr);
-                    $qr_api = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" . $url_table;
+                    $url_table = "http://127.0.0.1:8000/restau_pos.php?employe_id=" . $emp_qr . "&table=" . $table_qr;
+                    
+                    // Optimisation : taille 300x300 et correction d'erreur élevée ECC = H
+                    $qr_api = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=" . urlencode($url_table);
                     ?>
-                    <img src="<?= $qr_api ?>" alt="QR Table Restau" class="bg-white p-2 rounded mb-3">
+                    <img src="<?= $qr_api ?>" alt="QR Table Restau" class="bg-white p-2 rounded mb-3" style="width: 180px; height: 180px;">
                     <div>
                         <a href="restau_crud.php" class="btn btn-sm btn-info w-100 mb-2">
                             <i class="fas fa-boxes me-1"></i> Gestion Stock & Produits (CRUD)

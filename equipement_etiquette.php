@@ -1,11 +1,8 @@
-<?php
-// equipement_etiquette.php - Générateur d'étiquettes QR Code prêtes à coller (OMEGA Suite)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-$db = null;
-if (file_exists('config/database.php')) {
-    require_once 'config/database.php';
+<?php                         // equipement_etiquette.php - Générateur d'étiquettes QR Code prêtes à coller (OMEGA Suite)                             
+ini_set('display_errors', 1); error_reporting(E_ALL);                                     
+$db = null;                   
+if (file_exists('config/database.php')) {                       
+    require_once 'config/database.php';                         
     try { $db = (new Database())->getConnection(); } catch (Exception $e) {}
 } elseif (file_exists('database.php')) {
     require_once 'database.php';
@@ -26,7 +23,8 @@ if (!$eq) {
 }
 
 $fiche_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/equipement_fiche.php?id=' . $eq['id'];
-$qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($fiche_url);
+// Optimisation : taille 300x300 et correction d'erreur élevée ECC = H pour impression photocopieuse
+$qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=" . urlencode($fiche_url);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -61,7 +59,7 @@ $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . url
         <div class="etiquette-card">
             <h5 class="fw-bold mb-1 text-uppercase text-dark"><?= htmlspecialchars($eq['nom_equipement']) ?></h5>
             <span class="badge bg-dark text-white px-2 py-1 mb-2"><?= htmlspecialchars($eq['code_equipement']) ?></span>
-            
+
             <div class="my-2">
                 <img src="<?= $qr_url ?>" alt="QR Code" class="img-fluid" style="width: 160px; height: 160px;">
             </div>

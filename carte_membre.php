@@ -17,7 +17,9 @@ $nom_complet = htmlspecialchars($emp['prenom'] . ' ' . $emp['nom']);
 $poste = htmlspecialchars($emp['poste']);
 $departement = htmlspecialchars($emp['nom_departement'] ?? 'Direction Générale');
 $url_pointage = "http://127.0.0.1:8000/scanner.php?code=" . urlencode($code);
-$qr_api = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($url_pointage);
+
+// Optimisation : taille 300x300 et correction d'erreur élevée ECC = H
+$qr_api = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=" . urlencode($url_pointage);
 ?>
 <!DOCTYPE html>
 <html lang="fr">

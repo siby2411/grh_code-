@@ -1,15 +1,12 @@
-<?php
-// wifi_etiquette.php - Générateur d'étiquette Wi-Fi officielle (OMEGA Suite)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
+<?php                         // wifi_etiquette.php - Générateur d'étiquette Wi-Fi officielle (OMEGA Suite)
+ini_set('display_errors', 1); error_reporting(E_ALL);                                     
 $ssid = "FAMILLE NDIAYE";
 $password = "ozymandiasking";
 $encryption = "WPA";
 
-// La chaîne reste identique pour permettre la connexion automatique par scan
 $wifi_string = "WIFI:T:{$encryption};S:{$ssid};P:{$password};;";
-$qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" . urlencode($wifi_string);
+// Optimisation : taille 300x300 et correction d'erreur élevée ECC = H pour impression photocopieuse
+$qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=" . urlencode($wifi_string);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -47,16 +44,15 @@ $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" . url
             <div class="text-success mb-2"><i class="fas fa-wifi fa-2x"></i></div>
             <h4 class="fw-bold mb-1 text-uppercase text-dark">ACCÈS WI-FI INVITÉ</h4>
             <p class="text-muted small mb-3">Scannez pour vous connecter automatiquement</p>
-            
+
             <div class="bg-white p-2 d-inline-block border rounded shadow-sm mb-3">
                 <img src="<?= $qr_url ?>" alt="QR Code WiFi" class="img-fluid" style="width: 200px; height: 200px;">
             </div>
 
             <div class="bg-light p-3 rounded text-center border small text-dark">
                 <div class="mb-0"><strong>Réseau :</strong> <span class="text-danger fw-bold"><?= htmlspecialchars($ssid) ?></span></div>
-                <!-- Mot de passe retiré ici -->
             </div>
-            
+
             <div class="mt-3 text-muted" style="font-size: 11px;">OMEGA Suite — Espace Connecté Sécurisé</div>
         </div>
     </div>
