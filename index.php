@@ -1,5 +1,5 @@
 <?php
-// index.php - OMEGA SUITE (Version Pro Intégrale - GRH, POS, Paiements, IoT & vCards)
+// index.php - OMEGA SUITE (Version Pro Intégrale - GRH, POS, Paiements, Équipements, IoT & vCards)
 ini_set('display_errors', 0);
 require_once 'libs/phpqrcode.php';
 
@@ -16,7 +16,7 @@ try {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $nb_employes = $db->query("SELECT COUNT(*) FROM employes")->fetchColumn() ?: 0;
-    
+
     $chk_eq = $db->query("SHOW TABLES LIKE 'equipements'");
     if ($chk_eq->rowCount() > 0) $nb_equipements = $db->query("SELECT COUNT(*) FROM equipements")->fetchColumn() ?: 0;
 
@@ -35,8 +35,8 @@ function get_qr($data) {
     return 'qr_gen.php?data=' . urlencode($data);
 }
 
-// Payloads des QR codes (IoT / Paiement USSD / vCards / Wi-Fi)
-$ussd_orange = "tel:*145*2*1*776542803*1500#";
+// Payloads des QR codes (IoT / Paiement Web Intermédiaire / vCards / Wi-Fi)
+$ussd_orange = "http://127.0.0.1:8000/paiement_action.php?montant=1500";
 $iot_device = "OMEGA_IOT_GATEWAY_SN_2026:DEVICE_CONNECTED:PORT_9010";
 $vcard_med = "BEGIN:VCARD\nVERSION:3.0\nN:Diallo;Fatou;;;\nFN:Fatou Diallo (URGENCE)\nTEL;TYPE=CELL:+221770000000\nNOTE:SANG:O-;ALLERGIE:Aspirine;Diabétique Type 1\nEND:VCARD";
 $vcard_pro = "BEGIN:VCARD\nVERSION:3.0\nN:Siby;Mohamed;;;\nFN:Mohamed Siby (Consultant)\nORG:OMEGA INFORMATIQUE CONSULTING\nTEL;TYPE=CELL:+221776542803\nEMAIL:sibymohamed24@gmail.com\nNOTE:Sacré-Cœur 3 VDN, Dakar\nEND:VCARD";
@@ -56,11 +56,11 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .text-center { text-align: center; }
         .mb-4 { margin-bottom: 1.5rem; }
         .mb-5 { margin-bottom: 3rem; }
-        
+
         /* En-tête */
         h1 { color: #dc3545; font-size: 2.5rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
         .badge-pro { background: rgba(220, 53, 69, 0.15); border: 1px solid #dc3545; color: #ff6b6b; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; display: inline-block; font-weight: bold; margin-bottom: 15px; }
-        
+
         /* Boutons */
         .btn { display: inline-block; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.2s; cursor: pointer; border: none; text-align: center; }
         .btn-outline-light { background: transparent; color: #f8f9fa; border: 1px solid #6c757d; }
@@ -70,21 +70,22 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .btn-success { background: #198754; color: #fff; }
         .btn-info { background: #0dcaf0; color: #000; }
         .btn-danger { background: #dc3545; color: #fff; }
-        
+
         /* Grille des KPI */
         .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 20px; text-align: center; transition: transform 0.3s, border-color 0.3s; }
         .card:hover { transform: translateY(-3px); border-color: rgba(220, 53, 69, 0.5); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
         .card small { color: #adb5bd; font-size: 0.9rem; display: block; margin-bottom: 10px; }
         .card h3 { font-size: 1.8rem; margin-bottom: 15px; color: #fff; }
-        
+
         /* Grille des modules principaux */
-        .grid-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .grid-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .module-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
         .module-header { padding: 15px 20px; font-weight: bold; font-size: 1.1rem; color: white; }
         .bg-danger-custom { background: #dc3545; }
         .bg-primary-custom { background: #0d6efd; }
         .bg-success-custom { background: #198754; }
+        .bg-warning-custom { background: #ffc107; color: #000; }
         .module-body { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
         .module-body p { color: #adb5bd; font-size: 0.9rem; margin-bottom: 20px; flex-grow: 1; }
         .module-body .btn { width: 100%; margin-bottom: 8px; }
@@ -169,13 +170,21 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
                 <a href="paiements.php" class="btn btn-success">Gestion des Paiements</a>
             </div>
         </div>
+
+        <div class="module-card">
+            <div class="module-header bg-warning-custom">OMEGA ÉQUIPEMENTS — Parc Matériel</div>
+            <div class="module-body">
+                <p>Inventaire, fiches de suivi et étiquetage QR code par actif matériel.</p>
+                <a href="equipements.php" class="btn btn-warning" style="color: #000;">Gestion du Parc</a>
+            </div>
+        </div>
     </div>
 
     <!-- Section Générateurs QR Codes, Paiements & vCards -->
     <h3 class="section-title">Générateurs Rapides (Orange Money, IoT, vCards & Wi-Fi)</h3>
     <div class="grid-qr">
         <div class="qr-card" style="border-color: #198754;">
-            <h5 style="color: #198754;">QR Orange Money (USSD)</h5>
+            <h5 style="color: #198754;">QR Orange Money (Web)</h5>
             <div class="qr-box">
                 <img src="<?= get_qr($ussd_orange) ?>" alt="QR Orange Money" style="width: 120px; height: 120px; display: block;">
             </div>
