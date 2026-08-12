@@ -1,15 +1,10 @@
 <?php
 // index.php - OMEGA SUITE (Version Pro Intégrale - GRH, POS, Paiements, Équipements, IoT & vCards)
-ini_set('display_errors', 0);
-require_once 'libs/phpqrcode.php';
+ini_set('display_errors', 0); require_once 'libs/phpqrcode.php';
 
-// Connexion BDD locale
-$db = null;
-$nb_employes = 0;
-$ca_restau = 0;
-$pointages = 0;
-$satisfaction = 0;
-$nb_equipements = 0;
+// Connexion BDD locale       $db = null;                   $nb_employes = 0;
+$ca_restau = 0;               $pointages = 0;
+$satisfaction = 0;            $nb_equipements = 0;
 
 try {
     $db = new PDO('mysql:host=127.0.0.1;dbname=grh_qrcode;charset=utf8', 'root', '');
@@ -35,8 +30,12 @@ function get_qr($data) {
     return 'qr_gen.php?data=' . urlencode($data);
 }
 
-// Payloads des QR codes (IoT / Paiement Web Intermédiaire / vCards / Wi-Fi)
+// Payloads des QR codes (IoT / Paiement Web Intermédiaire / USSD / SMS / vCards / Wi-Fi)
+$tel_marchand = "+221776542803";
 $ussd_orange = "http://127.0.0.1:8000/paiement_action.php?montant=1500";
+$ussd_direct = "tel:*145*2*1*%2B221776542803*1500%23";
+$sms_direct = "sms:" . $tel_marchand . "?body=PAY%201500";
+
 $iot_device = "OMEGA_IOT_GATEWAY_SN_2026:DEVICE_CONNECTED:PORT_9010";
 $vcard_med = "BEGIN:VCARD\nVERSION:3.0\nN:Diallo;Fatou;;;\nFN:Fatou Diallo (URGENCE)\nTEL;TYPE=CELL:+221770000000\nNOTE:SANG:O-;ALLERGIE:Aspirine;Diabétique Type 1\nEND:VCARD";
 $vcard_pro = "BEGIN:VCARD\nVERSION:3.0\nN:Siby;Mohamed;;;\nFN:Mohamed Siby (Consultant)\nORG:OMEGA INFORMATIQUE CONSULTING\nTEL;TYPE=CELL:+221776542803\nEMAIL:sibymohamed24@gmail.com\nNOTE:Sacré-Cœur 3 VDN, Dakar\nEND:VCARD";
@@ -70,6 +69,7 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .btn-success { background: #198754; color: #fff; }
         .btn-info { background: #0dcaf0; color: #000; }
         .btn-danger { background: #dc3545; color: #fff; }
+        .btn-orange { background: #ff6600; color: #fff; }
 
         /* Grille des KPI */
         .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 40px; }
@@ -181,8 +181,26 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
     </div>
 
     <!-- Section Générateurs QR Codes, Paiements & vCards -->
-    <h3 class="section-title">Générateurs Rapides (Orange Money, IoT, vCards & Wi-Fi)</h3>
+    <h3 class="section-title">Générateurs Rapides (Orange Money, USSD, SMS, IoT, vCards & Wi-Fi)</h3>
     <div class="grid-qr">
+        <div class="qr-card" style="border-color: #ff6600;">
+            <h5 style="color: #ff6600;">USSD Direct (Android)</h5>
+            <div class="qr-box">
+                <img src="<?= get_qr($ussd_direct) ?>" alt="USSD Direct" style="width: 120px; height: 120px; display: block;">
+            </div>
+            <p>Lancement USSD :<br><b>*145*2*1*...#</b></p>
+            <a href="<?= $ussd_direct ?>" class="btn btn-orange" style="width: 100%;">Lancer USSD</a>
+        </div>
+
+        <div class="qr-card" style="border-color: #0d6efd;">
+            <h5 style="color: #0d6efd;">Paiement par SMS</h5>
+            <div class="qr-box">
+                <img src="<?= get_qr($sms_direct) ?>" alt="Paiement SMS" style="width: 120px; height: 120px; display: block;">
+            </div>
+            <p>SMS pré-rempli vers :<br><b>+221 77 654 28 03</b></p>
+            <a href="<?= $sms_direct ?>" class="btn btn-primary" style="width: 100%;">Envoyer SMS</a>
+        </div>
+
         <div class="qr-card" style="border-color: #198754;">
             <h5 style="color: #198754;">QR Orange Money (Web)</h5>
             <div class="qr-box">
