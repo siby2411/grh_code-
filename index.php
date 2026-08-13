@@ -1,53 +1,67 @@
 <?php
-// index.php - OMEGA SUITE (Version Pro Intégrale - GRH, POS, Paiements, Équipements, IoT & vCards)
-ini_set('display_errors', 0); require_once 'libs/phpqrcode.php';
+// index.php - OMEGA SUITE (Version Pro Intégrale - GRH, POS, Paiements, Matériel, Quittance & Communication)
+ini_set('display_errors', 0); 
+require_once 'libs/phpqrcode.php';
 
-// Connexion BDD locale       $db = null;                   $nb_employes = 0;
-$ca_restau = 0;               $pointages = 0;
-$satisfaction = 0;            $nb_equipements = 0;
+$dir = 'temp_qrs/';
+if (!file_exists($dir)) { mkdir($dir, 0777, true); }
 
+// Connexion BDD locale
+$db = null; $nb_employes = 0; $ca_restau = 0; $pointages = 0; $satisfaction = 0; $nb_equipements = 0;
 try {
     $db = new PDO('mysql:host=127.0.0.1;dbname=grh_qrcode;charset=utf8', 'root', '');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
     $nb_employes = $db->query("SELECT COUNT(*) FROM employes")->fetchColumn() ?: 0;
-
     $chk_eq = $db->query("SHOW TABLES LIKE 'equipements'");
     if ($chk_eq->rowCount() > 0) $nb_equipements = $db->query("SELECT COUNT(*) FROM equipements")->fetchColumn() ?: 0;
-
     $chk_restau = $db->query("SHOW TABLES LIKE 'restau_commandes'");
     if ($chk_restau->rowCount() > 0) $ca_restau = $db->query("SELECT SUM(total) FROM restau_commandes")->fetchColumn() ?: 0;
-
     $chk_pt = $db->query("SHOW TABLES LIKE 'pointages'");
     if ($chk_pt->rowCount() > 0) $pointages = $db->query("SELECT COUNT(*) FROM pointages WHERE DATE(date_pointage) = CURDATE()")->fetchColumn() ?: 0;
-
     $chk_sat = $db->query("SHOW TABLES LIKE 'avis_clients'");
     if ($chk_sat->rowCount() > 0) $satisfaction = $db->query("SELECT ROUND(AVG(note), 1) FROM avis_clients")->fetchColumn() ?: 0;
 } catch (Exception $e) {}
 
-// Fonction de génération QR locale
+// Fonction de génération QR locale standard
 function get_qr($data) {
     return 'qr_gen.php?data=' . urlencode($data);
 }
 
-// Payloads des QR codes (IoT / Paiement Web Intermédiaire / USSD / SMS / vCards / Wi-Fi)
+// --- PAYLOADS ET CONFIGURATIONS DE COMMUNICATION ---
 $tel_marchand = "+221776542803";
 $ussd_orange = "http://127.0.0.1:8000/paiement_action.php?montant=1500";
 $ussd_direct = "tel:*145*2*1*%2B221776542803*1500%23";
-$sms_direct = "sms:" . $tel_marchand . "?body=PAY%201500";
-
-$iot_device = "OMEGA_IOT_GATEWAY_SN_2026:DEVICE_CONNECTED:PORT_9010";
-$vcard_med = "BEGIN:VCARD\nVERSION:3.0\nN:Diallo;Fatou;;;\nFN:Fatou Diallo (URGENCE)\nTEL;TYPE=CELL:+221770000000\nNOTE:SANG:O-;ALLERGIE:Aspirine;Diabétique Type 1\nEND:VCARD";
-$vcard_pro = "BEGIN:VCARD\nVERSION:3.0\nN:Siby;Mohamed;;;\nFN:Mohamed Siby (Consultant)\nORG:OMEGA INFORMATIQUE CONSULTING\nTEL;TYPE=CELL:+221776542803\nEMAIL:sibymohamed24@gmail.com\nNOTE:Sacré-Cœur 3 VDN, Dakar\nEND:VCARD";
+$sms_direct = "sms:" . $tel_marchand . "?body=PAIEMENT_OMEGA_1500_FCFA";
 $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
+$iot_device = "OMEGA_IOT_GATEWAY_SN_2026:DEVICE_CONNECTED:PORT_9010";
+$vcard_pro = "BEGIN:VCARD\nVERSION:3.0\nN:Siby;Mohamed;;;\nFN:Mohamed Siby (Consultant)\nORG:OMEGA INFORMATIQUE CONSULTING\nTEL;TYPE=CELL:+221776542803\nEMAIL:sibymohamed24@gmail.com\nNOTE:Sacré-Cœur 3 VDN, Dakar\nEND:VCARD";
+
+// --- PAYLOAD ORANGE MONEY DIRECT ---
+$om_payload = "ORANGE_MONEY_MERCHANT|TEL:" . $tel_marchand . "|AMOUNT:1500|REF:OMEGA-PAY";
+$qr_om_file = $dir . 'orange_money_1500.png';
+QRcode::png($om_payload, $qr_om_file, QR_ECLEVEL_M, 3, 2);
+
+// --- 1. PAYLOAD MATÉRIEL EN DUR (Généré via phpqrcode) ---
+$materiel_payload = "PC Core i7|8Go RAM|SSD 256Go|340 000 FCFA|Contact:776542803";
+$qr_materiel_file = $dir . 'mat_core_i7.png';
+QRcode::png($materiel_payload, $qr_materiel_file, QR_ECLEVEL_M, 3, 2);
+
+// --- 2. TRAITEMENT QUITTANCE SÉCURISÉE ANTI-FRAUDE ---
+$q_client = $_POST['q_client'] ?? 'Client Partenaire';
+$q_montant = $_POST['q_montant'] ?? '340000';
+$q_ref = 'OMEGA-' . date('Ymd') . '-' . rand(1000, 9999);
+$q_sig = substr(hash('sha256', $q_ref . $q_client . $q_montant . 'OMEGA_KEY'), 0, 10);
+$q_payload_court = "OMEGA_RECUS|" . $q_ref . "|" . $q_client . "|" . $q_montant . "FCFA|Sig:" . $q_sig;
+
+$qr_quittance_file = $dir . 'quittance_' . $q_ref . '.png';
+QRcode::png($q_payload_court, $qr_quittance_file, QR_ECLEVEL_L, 3, 2);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMEGA SUITE - GRH, POS, Équipements & QR Code</title>
-    <!-- Style 100% Intégré pour un rendu garanti sans faille -->
+    <title>OMEGA SUITE - GRH, POS, Équipements, Communication & Quittances Sécurisées</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: #121212; color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
@@ -56,11 +70,9 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .mb-4 { margin-bottom: 1.5rem; }
         .mb-5 { margin-bottom: 3rem; }
 
-        /* En-tête */
         h1 { color: #dc3545; font-size: 2.5rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
         .badge-pro { background: rgba(220, 53, 69, 0.15); border: 1px solid #dc3545; color: #ff6b6b; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; display: inline-block; font-weight: bold; margin-bottom: 15px; }
 
-        /* Boutons */
         .btn { display: inline-block; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.2s; cursor: pointer; border: none; text-align: center; }
         .btn-outline-light { background: transparent; color: #f8f9fa; border: 1px solid #6c757d; }
         .btn-outline-light:hover { background: #f8f9fa; color: #121212; }
@@ -71,14 +83,12 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .btn-danger { background: #dc3545; color: #fff; }
         .btn-orange { background: #ff6600; color: #fff; }
 
-        /* Grille des KPI */
         .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 20px; text-align: center; transition: transform 0.3s, border-color 0.3s; }
         .card:hover { transform: translateY(-3px); border-color: rgba(220, 53, 69, 0.5); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
         .card small { color: #adb5bd; font-size: 0.9rem; display: block; margin-bottom: 10px; }
         .card h3 { font-size: 1.8rem; margin-bottom: 15px; color: #fff; }
 
-        /* Grille des modules principaux */
         .grid-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .module-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
         .module-header { padding: 15px 20px; font-weight: bold; font-size: 1.1rem; color: white; }
@@ -90,7 +100,6 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .module-body p { color: #adb5bd; font-size: 0.9rem; margin-bottom: 20px; flex-grow: 1; }
         .module-body .btn { width: 100%; margin-bottom: 8px; }
 
-        /* Grille des QR Codes */
         .section-title { color: #0dcaf0; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 20px; font-size: 1.4rem; }
         .grid-qr { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
         .qr-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
@@ -98,7 +107,9 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         .qr-card h5 { margin-bottom: 10px; font-size: 1rem; }
         .qr-card p { color: #adb5bd; font-size: 0.85rem; margin-bottom: 15px; }
 
-        /* Footer */
+        .form-control { width: 100%; padding: 6px; background: #1e1e1e; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; }
+        .form-group label { display: block; text-align: left; margin-bottom: 3px; font-size: 0.75rem; color: #adb5bd; }
+
         .footer { background: #000; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; margin-top: 40px; }
         .footer p { color: #adb5bd; font-size: 0.9rem; margin-bottom: 5px; }
         .footer strong { color: #fff; }
@@ -106,11 +117,10 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
 </head>
 <body>
 <div class="container">
-    <!-- En-tête Pro -->
     <div class="text-center mb-5">
         <span class="badge-pro">OMEGA INFORMATIQUE CONSULTING — DAKAR</span>
-        <h1>OMEGA SUITE</h1>
-        <p style="color: #6c757d; margin-bottom: 15px;">Module GRH, Pointage Intelligent & Traçabilité QR Code</p>
+        <h1>OMEGA SUITE — TABLEAU DE BORD</h1>
+        <p style="color: #6c757d; margin-bottom: 15px;">Modules de Communication, Sécurité, IoT & Gestion Intégrale</p>
         <a href="http://localhost:9007" class="btn btn-outline-light">← Retour au Menu Global (Port 9007)</a>
     </div>
 
@@ -143,7 +153,7 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         </div>
     </div>
 
-    <!-- Accès Rapides aux Modules Métiers -->
+    <!-- Modules Métiers -->
     <div class="grid-modules">
         <div class="module-card">
             <div class="module-header bg-danger-custom">OMEGA RESTAU — POS</div>
@@ -180,70 +190,89 @@ $wifi_visiteur = "WIFI:S:OMEGA_VISITEUR;T:WPA;P:omega2026visiteur;;";
         </div>
     </div>
 
-    <!-- Section Générateurs QR Codes, Paiements & vCards -->
-    <h3 class="section-title">Générateurs Rapides (Orange Money, USSD, SMS, IoT, vCards & Wi-Fi)</h3>
+    <!-- Section Modules de Communication, IoT & Sécurité -->
+    <h3 class="section-title">Modules de Communication, IoT & Sécurité</h3>
     <div class="grid-qr">
+        <!-- 1. QR Paiement Orange Money Direct -->
         <div class="qr-card" style="border-color: #ff6600;">
-            <h5 style="color: #ff6600;">USSD Direct (Android)</h5>
+            <h5 style="color: #ff6600;">Orange Money (1500F)</h5>
             <div class="qr-box">
-                <img src="<?= get_qr($ussd_direct) ?>" alt="USSD Direct" style="width: 120px; height: 120px; display: block;">
+                <img src="<?= $qr_om_file ?>" alt="QR Orange Money" style="width: 120px; height: 120px; display: block;">
             </div>
-            <p>Lancement USSD :<br><b>*145*2*1*...#</b></p>
+            <p>Marchand : <b>+221 77 654 28 03</b><br>Encaissement instantané</p>
             <a href="<?= $ussd_direct ?>" class="btn btn-orange" style="width: 100%;">Lancer USSD</a>
         </div>
 
-        <div class="qr-card" style="border-color: #0d6efd;">
-            <h5 style="color: #0d6efd;">Paiement par SMS</h5>
+        <!-- 2. Accès Wi-Fi -->
+        <div class="qr-card" style="border-color: #0dcaf0;">
+            <h5 style="color: #0dcaf0;">Accès Wi-Fi</h5>
             <div class="qr-box">
-                <img src="<?= get_qr($sms_direct) ?>" alt="Paiement SMS" style="width: 120px; height: 120px; display: block;">
+                <img src="<?= get_qr($wifi_visiteur) ?>" alt="WiFi QR" style="width: 120px; height: 120px; display: block;">
+            </div>
+            <p>Réseau: <b>OMEGA_VISITEUR</b><br>Connexion instantanée</p>
+            <span style="font-size: 0.75rem; color: #0dcaf0;">Sécurisé WPA</span>
+        </div>
+
+        <!-- 3. Messagerie SMS -->
+        <div class="qr-card" style="border-color: #0d6efd;">
+            <h5 style="color: #0d6efd;">Messagerie SMS</h5>
+            <div class="qr-box">
+                <img src="<?= get_qr($sms_direct) ?>" alt="SMS QR" style="width: 120px; height: 120px; display: block;">
             </div>
             <p>SMS pré-rempli vers :<br><b>+221 77 654 28 03</b></p>
             <a href="<?= $sms_direct ?>" class="btn btn-primary" style="width: 100%;">Envoyer SMS</a>
         </div>
 
-        <div class="qr-card" style="border-color: #198754;">
-            <h5 style="color: #198754;">QR Orange Money (Web)</h5>
-            <div class="qr-box">
-                <img src="<?= get_qr($ussd_orange) ?>" alt="QR Orange Money" style="width: 120px; height: 120px; display: block;">
-            </div>
-            <p>Paiement direct marchand :<br><b>+221 77 654 28 03</b></p>
-            <a href="paiements.php" class="btn btn-outline-success" style="width: 100%;">Module Paiements</a>
-        </div>
-
+        <!-- 4. Passerelle IoT -->
         <div class="qr-card" style="border-color: #ffc107;">
-            <h5 style="color: #ffc107;">Passerelle IoT & Terminaux</h5>
+            <h5 style="color: #ffc107;">Passerelle IoT</h5>
             <div class="qr-box">
-                <img src="<?= get_qr($iot_device) ?>" alt="QR IoT Gateway" style="width: 120px; height: 120px; display: block;">
+                <img src="<?= get_qr($iot_device) ?>" alt="IoT QR" style="width: 120px; height: 120px; display: block;">
             </div>
             <p>Synchronisation matérielle & capteurs de badgeage</p>
-            <a href="equipements.php" class="btn btn-outline-warning" style="width: 100%;">Gérer Parc IoT</a>
+            <a href="equipements.php" class="btn btn-warning" style="width: 100%; color: #000;">Gérer IoT</a>
         </div>
 
-        <div class="qr-card" style="border-color: #0dcaf0;">
-            <h5 style="color: #0dcaf0;">vCard Consultant (Pro)</h5>
+        <!-- 5. vCard Pro Consultant -->
+        <div class="qr-card" style="border-color: #198754;">
+            <h5 style="color: #198754;">vCard Consultant</h5>
             <div class="qr-box">
                 <img src="<?= get_qr($vcard_pro) ?>" alt="vCard Pro" style="width: 120px; height: 120px; display: block;">
             </div>
             <p>Carte de visite numérique Mohamed Siby</p>
-            <a href="vcard.php" class="btn btn-outline-info" style="width: 100%;">Gérer vCard Pro</a>
+            <a href="vcard.php" class="btn btn-success" style="width: 100%;">Voir vCard</a>
         </div>
 
-        <div class="qr-card">
-            <h5 style="color: #fff;">vCard Médicale / Salon</h5>
+        <!-- 6. Fiche Matériel en Dur -->
+        <div class="qr-card" style="border-color: #ff6600;">
+            <h5 style="color: #ff6600;">Fiche Matériel</h5>
             <div class="qr-box">
-                <img src="<?= get_qr($vcard_med) ?>" alt="vCard Medical" style="width: 120px; height: 120px; display: block;">
+                <img src="<?= $qr_materiel_file ?>" alt="Matériel QR" style="width: 120px; height: 120px; display: block;">
             </div>
-            <p>Fiche d'urgence & informations médicales</p>
-            <a href="salon_vcard.php" class="btn btn-outline-light" style="width: 100%;">Module Salon & vCard</a>
+            <p><b>PC Core i7 (340 000 F)</b><br>Autonome (Sans serveur)</p>
+            <span style="font-size: 0.75rem; color: #28a745;">✓ Étiquette Imprimable</span>
         </div>
 
-        <div class="qr-card">
-            <h5 style="color: #fff;">Accès Wi-Fi Sécurisé</h5>
-            <div class="qr-box">
-                <img src="<?= get_qr($wifi_visiteur) ?>" alt="WiFi QR" style="width: 120px; height: 120px; display: block;">
+        <!-- 7. Quittance Anti-Fraude -->
+        <div class="qr-card" style="border-color: #dc3545; text-align: left;">
+            <h5 style="color: #dc3545; text-align: center;">Quittance Anti-Fraude</h5>
+            <form method="POST" action="">
+                <div class="form-group">
+                    <label>Client</label>
+                    <input type="text" name="q_client" class="form-control" value="<?= htmlspecialchars($q_client) ?>">
+                </div>
+                <div class="form-group">
+                    <label>Montant (FCFA)</label>
+                    <input type="text" name="q_montant" class="form-control" value="<?= htmlspecialchars($q_montant) ?>">
+                </div>
+                <button type="submit" class="btn btn-danger" style="width: 100%; font-size: 0.75rem; padding: 5px;">Générer Hash</button>
+            </form>
+            <div class="qr-box" style="margin: 8px auto; display: block; text-align: center;">
+                <img src="<?= $qr_quittance_file ?>" alt="QR Quittance" style="width: 85px; height: 85px;">
             </div>
-            <p>Connexion instantanée réseau Visiteurs</p>
-            <a href="wifi_visiteurs.php" class="btn btn-outline-light" style="width: 100%;">Gérer Wi-Fi & Étiquettes</a>
+            <p style="font-size: 0.65rem; font-family: monospace; text-align: center; color: #fff; word-break: break-all;">
+                <?= htmlspecialchars($q_payload_court) ?>
+            </p>
         </div>
     </div>
 
