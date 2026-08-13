@@ -46,8 +46,10 @@ $materiel_payload = "PC Core i7|8Go RAM|SSD 256Go|340 000 FCFA|Contact:776542803
 $qr_materiel_file = $dir . 'mat_core_i7.png';
 QRcode::png($materiel_payload, $qr_materiel_file, QR_ECLEVEL_M, 3, 2);
 
-// --- 2. TRAITEMENT QUITTANCE SÉCURISÉE ANTI-FRAUDE ---
+// --- 2. TRAITEMENT QUITTANCE / FACTURE SÉCURISÉE ANTI-FRAUDE ---
 $q_client = $_POST['q_client'] ?? 'Client Partenaire';
+$q_tel = $_POST['q_tel'] ?? '+221 77 000 00 00';
+$q_designation = $_POST['q_designation'] ?? 'Prestation Informatique & Matériel';
 $q_montant = $_POST['q_montant'] ?? '340000';
 $q_ref = 'OMEGA-' . date('Ymd') . '-' . rand(1000, 9999);
 $q_sig = substr(hash('sha256', $q_ref . $q_client . $q_montant . 'OMEGA_KEY'), 0, 10);
@@ -113,6 +115,41 @@ QRcode::png($q_payload_court, $qr_quittance_file, QR_ECLEVEL_L, 3, 2);
         .footer { background: #000; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; margin-top: 40px; }
         .footer p { color: #adb5bd; font-size: 0.9rem; margin-bottom: 5px; }
         .footer strong { color: #fff; }
+
+        /* --- MODE FACTURE MASQUÉ À L'ÉCRAN NORMAL --- */
+        #printable-facture { display: none; }
+
+        /* --- STYLES D'IMPRESSION TYPE FACTURE PROFESSIONNELLE --- */
+        @media print {
+            body * { visibility: hidden; }
+            #printable-facture, #printable-facture * { visibility: visible; }
+            #printable-facture {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 30px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            .invoice-header { display: flex; justify-content: space-between; border-bottom: 2px solid #dc3545; padding-bottom: 15px; margin-bottom: 20px; }
+            .invoice-company h2 { color: #dc3545; font-size: 1.5rem; text-transform: uppercase; margin-bottom: 5px; }
+            .invoice-company p { font-size: 0.85rem; color: #555; line-height: 1.4; }
+            .invoice-meta { text-align: right; }
+            .invoice-meta h3 { font-size: 1.2rem; color: #333; margin-bottom: 5px; }
+            .invoice-meta p { font-size: 0.85rem; color: #555; }
+            .invoice-client { background: #f8f9fa; border: 1px solid #ddd; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+            .invoice-client h4 { color: #333; margin-bottom: 5px; font-size: 0.95rem; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .invoice-table th, .invoice-table td { border: 1px solid #ddd; padding: 10px; font-size: 0.85rem; text-align: left; }
+            .invoice-table th { background: #dc3545; color: #fff; }
+            .invoice-total { text-align: right; font-size: 1.1rem; font-weight: bold; margin-bottom: 30px; color: #000; }
+            .invoice-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd; padding-top: 15px; }
+            .invoice-qr img { width: 100px; height: 100px; }
+            .invoice-sign { text-align: right; font-size: 0.85rem; color: #555; }
+        }
     </style>
 </head>
 <body>
@@ -253,13 +290,21 @@ QRcode::png($q_payload_court, $qr_quittance_file, QR_ECLEVEL_L, 3, 2);
             <span style="font-size: 0.75rem; color: #28a745;">✓ Étiquette Imprimable</span>
         </div>
 
-        <!-- 7. Quittance Anti-Fraude -->
+        <!-- 7. Quittance / Facture Sécurisée avec Formulaire complet -->
         <div class="qr-card" style="border-color: #dc3545; text-align: left;">
-            <h5 style="color: #dc3545; text-align: center;">Quittance Anti-Fraude</h5>
+            <h5 style="color: #dc3545; text-align: center;">Quittance / Facture</h5>
             <form method="POST" action="">
                 <div class="form-group">
                     <label>Client</label>
                     <input type="text" name="q_client" class="form-control" value="<?= htmlspecialchars($q_client) ?>">
+                </div>
+                <div class="form-group">
+                    <label>Téléphone Client</label>
+                    <input type="text" name="q_tel" class="form-control" value="<?= htmlspecialchars($q_tel) ?>">
+                </div>
+                <div class="form-group">
+                    <label>Désignation</label>
+                    <input type="text" name="q_designation" class="form-control" value="<?= htmlspecialchars($q_designation) ?>">
                 </div>
                 <div class="form-group">
                     <label>Montant (FCFA)</label>
@@ -270,9 +315,59 @@ QRcode::png($q_payload_court, $qr_quittance_file, QR_ECLEVEL_L, 3, 2);
             <div class="qr-box" style="margin: 8px auto; display: block; text-align: center;">
                 <img src="<?= $qr_quittance_file ?>" alt="QR Quittance" style="width: 85px; height: 85px;">
             </div>
-            <p style="font-size: 0.65rem; font-family: monospace; text-align: center; color: #fff; word-break: break-all;">
-                <?= htmlspecialchars($q_payload_court) ?>
-            </p>
+            <button onclick="window.print();" class="btn btn-outline-light" style="width: 100%; font-size: 0.75rem; padding: 5px; margin-top: 5px;">🖨️ Imprimer Facture</button>
+        </div>
+    </div>
+
+    <!-- Modèle de Facture Professionnelle (Visible uniquement à l'impression) -->
+    <div id="printable-facture">
+        <div class="invoice-header">
+            <div class="invoice-company">
+                <h2>OMEGA INFORMATIQUE CONSULTING</h2>
+                <p>Sacré-Cœur 3 VDN, Dakar, Sénégal<br>Tél : +221 77 654 28 03 | Email : sibymohamed24@gmail.com</p>
+            </div>
+            <div class="invoice-meta">
+                <h3>FACTURE / QUITTANCE</h3>
+                <p><b>Réf :</b> <?= htmlspecialchars($q_ref) ?></p>
+                <p><b>Date :</b> <?= date('d/m/Y H:i') ?></p>
+            </div>
+        </div>
+
+        <div class="invoice-client">
+            <h4>INFORMATIONS CLIENT</h4>
+            <p><b>Nom / Raison Sociale :</b> <?= htmlspecialchars($q_client) ?></p>
+            <p><b>Téléphone :</b> <?= htmlspecialchars($q_tel) ?></p>
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Désignation de la prestation / matériel</th>
+                    <th style="text-align: right; width: 150px;">Montant (FCFA)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><?= htmlspecialchars($q_designation) ?></td>
+                    <td style="text-align: right;"><?= number_format((float)$q_montant, 0, ',', ' ') ?> FCFA</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="invoice-total">
+            Total à payer : <?= number_format((float)$q_montant, 0, ',', ' ') ?> FCFA
+        </div>
+
+        <div class="invoice-footer">
+            <div class="invoice-qr">
+                <img src="<?= $qr_quittance_file ?>" alt="QR Sécurité Anti-Fraude">
+                <div style="font-size: 0.6rem; font-family: monospace; margin-top: 3px;">Sig: <?= htmlspecialchars($q_sig) ?></div>
+            </div>
+            <div class="invoice-sign">
+                <p><b>Le Consultant :</b> Mr Mohamed Siby</p>
+                <br><br>
+                <p>Cachet & Signature</p>
+            </div>
         </div>
     </div>
 
